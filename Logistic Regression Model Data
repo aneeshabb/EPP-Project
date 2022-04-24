@@ -1,0 +1,107 @@
+# Author: Octavio Mesner
+# 19-101 Recitation
+# 4/19/2019
+
+# This code shows how to (1) import a csv file
+# and (2) run logistic regression
+
+# importing data into R
+
+# First make sure R is reading from the correct directory
+# What is your current directory? Use this command:
+getwd()
+
+# Change your directory, use setwd("<directory path here>")
+# Note: The path in the line below will NOT work for you
+setwd("~/Box Sync/cmu/eppTa/")
+
+# what files are in this directory? Use this:
+list.files()
+# if your data files are not in that list, either you're in
+# the wrong directory or you don't have the data in the 
+# right place
+
+# Read in a csv file (should end with ".csv"), use this:
+cCardT <- read.csv("creditCardTransactions.csv")
+
+# Look at the first 6 rows using this:
+head(cCardT)
+
+# learn more about the data using this:
+str(cCardT)
+
+# How many c-sections where there?
+table(cCardT$fraud_detected)
+
+# What is the mean age?
+mean(cCardT$age)
+
+# What does this do?
+summary(cCardT$age)
+
+# What does this do?
+table(cCardT$age, cCardT$fraud_detected)
+
+# split data into a training set and a test set
+
+# make sure you get the same random numbers each time you run
+set.seed(1234)
+
+# choose random rows
+testIndex <- sample(dim(cCardT)[1], size = 500, replace = FALSE)
+
+# put those rows into a dataset
+testData <- cCardT[testIndex,]
+
+# put all other rows into a dataset
+trainData <- cCardT[-testIndex,]
+
+# Logistic Regression
+
+# Estimate the parameters for the logistic regression model
+cCardTFit <- glm(fraud_detected ~ age + as.factor(transac_loc) + transac_time + transac_amount, data = trainData, family = "binomial")
+
+# show output
+summary(cCardTFit)
+
+# calculate confidence intervals
+confint(cCardTFit)
+
+# This function takes the output from glm
+# Outputs a readable table
+logTable <- function(fit){
+  sumry <- summary(fit)
+  oddsRatios <- exp(sumry$coefficients[,1])
+  confInts <- exp(confint(fit))
+  pvals <- sumry$coefficients[,4]
+  return(cbind(oddsRatios, confInts, pvals))
+}
+
+# show output
+logTable(cCardTFit)
+
+# how do we interpret this table?
+
+# make predictions for test data about c-sections
+cCardTProb <- predict(cCardTFit, newdata = testData, type = "response")
+
+# output predictions, they're probabilities of a c-section
+cCardTProb
+
+# if the probability > 0.5, we're going to predict a c-section, otherwise no
+cCardTPred <- ifelse(cCardTProb > 0.5, 1, 0)
+
+# take a side-by-side look
+cbind(cCardTProb, cCardTPred)
+
+# how does this compare to the actual values?
+# look at all the values
+cbind(cCardTPred, testData$fraud_detected)
+
+# look at a table
+table(cCardTPred, testData$fraud_detected)
+
+# error rate
+sum(cCardTPred != testData$fraud_detected)/length(cCardTPred)
+
+# try this for the autism dataset!
